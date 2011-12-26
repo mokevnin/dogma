@@ -7,12 +7,12 @@ module Dogma
 
     def commit
       #TODO order
-      @em.transaction do
+      #@em.transaction do
         if @entity_inserts.any?
           @entity_inserts.keys.map{|klass| execute_inserts(klass)}
         end
         #TODO delete
-      end
+      #end
 
       reset
     end
@@ -20,7 +20,7 @@ module Dogma
     def persist(entity)
       case entity_state(entity)
       when :new
-        persist_new
+        persist_new(entity)
       end
     end
 
@@ -39,14 +39,25 @@ module Dogma
 
     private
       def execute_inserts(klass)
+        metadata = @em.class_metadata(klass)
         persister = entity_persister(klass)
-        post_insert_ids = persister.batch_insert(@entity_insertions[klass])
-        post_insert_ids.each_with_pair do |id, entity|
+        post_insert_ids = persister.batch_insert(@entity_inserts[klass].values)
+        post_insert_ids.each_pair do |id, entity|
+          entity.instance_variable_set "@#{metadata.identifier[0]}", id
           oid = entity.object_id
-          @entity_identifiers[oid] = ''
+          #@entity_identifiers[oid] = id
           @entity_states[oid] = :managed
           add_to_identity_map(entity)
         end
+      end
+
+      def entity_persister(klass)
+        metadata = @em.class_metadata(klass)
+        unless @persisters[klass]
+          @persisters[klass] = Dogma::Persister::BasicEntity.new(@em, metadata)
+        end
+
+        @persisters[klass]
       end
 
       def reset
@@ -55,6 +66,7 @@ module Dogma
         @entity_updates = {}
         @entity_identifers = {}
         @identity_map = {}
+        @persisters = {}
       end
 
       def add_to_identity_map(entity)
@@ -64,8 +76,8 @@ module Dogma
       def persist_new(entity)
         oid = entity.object_id
         @entity_states[oid] = :managed
-        @entity_insertions[entity.class] ||= {}
-        @entity_insertions[entity.class][oid] = entity
+        @entity_inserts[entity.class] ||= {}
+        @entity_inserts[entity.class][oid] = entity
         if @entity_identifers[oid]
           add_to_identity_map(entity)
         end

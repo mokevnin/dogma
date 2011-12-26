@@ -1,7 +1,5 @@
 require 'yaml'
 
-require_dogma_file 'mapping/driver/abstract_file'
-
 module Dogma
   module Mapping
     module Driver
@@ -15,9 +13,7 @@ module Dogma
 
           end
 
-          table = {}
-          table[:name] = element['table']
-          metadata.primary_table = table
+          metadata.table_name = element['table']
 
           if element['id']
             element['id'].each_pair do |name, item|

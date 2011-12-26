@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Dogma do
   before do
     DB = Sequel.sqlite
-    require DOGMA_ROOT_PATH + '/spec/schema'
+    require PathHelper.schema
 
     @em = Dogma::EntityManager.new DB
   end

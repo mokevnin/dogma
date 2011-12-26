@@ -1,6 +1,6 @@
 cms/user:
   type: entity
-  table: users
+  table: cms_users
   id:
     id:
       type: integer

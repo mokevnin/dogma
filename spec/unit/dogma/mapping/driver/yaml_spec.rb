@@ -8,7 +8,10 @@ describe Dogma::Mapping::Driver::Yaml do
   end
 
   it 'should be build metadata' do
+    @metadata.identifier?(:id).should be_true
     @metadata.has_field?(:username).should be_true
     @metadata.has_field?(:wrong_field_name).should be_false
+
+    @metadata.column_name(:username).should eql(:username)
   end
 end

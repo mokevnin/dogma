@@ -30,6 +30,10 @@ module Dogma
       @unit_of_work.detach()
     end
 
+    def connection
+      @conn
+    end
+
     def class_metadata(klass)
       driver = Mapping::Driver::Yaml.new(Dogma.config.mapping_paths) #TODO
       metadata = Mapping::ClassMetadata.new(klass.to_s.underscore)
