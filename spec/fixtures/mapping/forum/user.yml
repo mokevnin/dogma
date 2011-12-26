@@ -1,0 +1,11 @@
+forum/user:
+  type: entity
+  table: forum_users
+  id:
+    id:
+      type: integer
+  fields:
+    username:
+      type: string
+      length: 100
+

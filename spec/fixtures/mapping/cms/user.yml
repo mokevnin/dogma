@@ -1,0 +1,16 @@
+cms/user:
+  type: entity
+  table: users
+  id:
+    id:
+      type: integer
+  fields:
+    username:
+      type: string
+      length: 100
+    name:
+      type: string
+    status:
+      type: string
+
+

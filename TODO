@@ -1,0 +1,13 @@
+- compose primary keys
+- cache
+- tree
+- dogma query language
+- events
+- value objects
+- generators (setup, model)
+- auto migrations
+- validations
+- dogma-rails
+- rake tasks
+- default mapping
+- dogma factory
