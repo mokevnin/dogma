@@ -4,6 +4,7 @@ require 'active_support/inflector'
 module Dogma
   autoload :Version, 'dogma/version'
   autoload :EntityManager, 'dogma/entity_manager'
+  autoload :IdentityMap, 'dogma/identity_map'
   autoload :UnitOfWork, 'dogma/unit_of_work'
   autoload :EntityRepository, 'dogma/entity_repository'
   autoload :Configuration, 'dogma/configuration'

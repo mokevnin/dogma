@@ -2,7 +2,15 @@ module Dogma
   class UnitOfWork
     def initialize(em)
       @em = em
+      @identity_map = IdentityMap.new(@em)
+
       reset
+    end
+
+    def contains?(entity)
+      scheduled_for_insert?(entity) \
+      || @identity_map.contains?(entity) \
+      && !scheduled_for_delete?(entity)
     end
 
     def commit
@@ -18,10 +26,7 @@ module Dogma
     end
 
     def persist(entity)
-      case entity_state(entity)
-      when :new
-        persist_new(entity)
-      end
+      do_persist(entity)
     end
 
     def entity_state(entity)
@@ -37,7 +42,32 @@ module Dogma
       :detached
     end
 
+    def scheduled_for_insert?(entity)
+      (@entity_inserts[entity.class] || {}).has_key? entity.object_id
+    end
+
+    def scheduled_for_update?(entity)
+      (@entity_updates[entity.class] || {}).has_key? entity.object_id
+    end
+
+    def scheduled_for_delete?(entity)
+      (@entity_deletions[entity.class] || {}).has_key? entity.object_id
+    end
+
     private
+
+      def do_persist(entity, visited = {})
+        return if visited[entity.object_id]
+        visited[entity.object_id] = entity
+
+        case entity_state(entity)
+        when :new
+          persist_new(entity)
+        end
+
+        #TODO cascade persist
+      end
+
       def execute_inserts(klass)
         metadata = @em.class_metadata(klass)
         persister = entity_persister(klass)
@@ -47,7 +77,7 @@ module Dogma
           oid = entity.object_id
           #@entity_identifiers[oid] = id
           @entity_states[oid] = :managed
-          add_to_identity_map(entity)
+          @identity_map.add(entity)
         end
       end
 
@@ -64,23 +94,21 @@ module Dogma
         @entity_states = {}
         @entity_inserts = {}
         @entity_updates = {}
+        @entity_deletions = {}
         @entity_identifers = {}
-        @identity_map = {}
         @persisters = {}
       end
 
-      def add_to_identity_map(entity)
-
+      def persist_new(entity)
+        @entity_states[entity.object_id] = :managed
+        schedule_for_insert(entity)
       end
 
-      def persist_new(entity)
-        oid = entity.object_id
-        @entity_states[oid] = :managed
+      def schedule_for_insert(entity)
+        #TODO check errors
         @entity_inserts[entity.class] ||= {}
-        @entity_inserts[entity.class][oid] = entity
-        if @entity_identifers[oid]
-          add_to_identity_map(entity)
-        end
+        @entity_inserts[entity.class][entity.object_id] = entity
       end
   end
+
 end

@@ -17,6 +17,6 @@ describe Dogma do
     @em.flush
 
     user.id.should be
-    @em.contains(user).should be_true
+    @em.contains?(user).should be_true
   end
 end
