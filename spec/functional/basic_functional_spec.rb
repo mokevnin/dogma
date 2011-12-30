@@ -18,5 +18,13 @@ describe Dogma do
 
     user.id.should be
     @em.contains?(user).should be_true
+
+    ph = Cms::Phonenumber.new
+    ph.phonenumber = '12345'
+    user.phonenumber = ph
+    @em.flush
+
+    @em.contains?(ph)
+    @em.contains?(user)
   end
 end
