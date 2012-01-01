@@ -1,0 +1,11 @@
+cms/phonenumber:
+  type: entity
+  table: cms_phonenumbers
+  id:
+    id:
+      type: integer
+  fields:
+    phonenumber:
+      type: string
+      length: 100
+

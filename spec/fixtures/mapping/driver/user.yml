@@ -1,6 +1,12 @@
 user:
   type: entity
   table: users
+  one_to_many:
+    phonenumbers:
+      target_entity: cms/phonenumber
+      mapped_by: user
+      cascade:
+        - persist
   id:
     id:
       type: integer

@@ -18,8 +18,8 @@ module Dogma
           if element['id']
             element['id'].each_pair do |name, item|
               mapping = {:id => true, :field_name => name}
-              mapping[:type] = item['type'] if item['type']
-              mapping[:column_name] = item['column'] if item['column']
+              mapping[:type] = item['type']
+              mapping[:column_name] = item['column']
               metadata.map_field(mapping)
             end
           end
@@ -28,15 +28,26 @@ module Dogma
             element['fields'].each_pair do |name, item|
               mapping = {:field_name => name}
 
-              mapping[:type] = item['type'] if item['type']
-              mapping[:column_name] = item['column'] if item['column']
-              mapping[:length] = item['length'] if item['length']
+              mapping[:type] = item['type']
+              mapping[:column_name] = item['column']
+              mapping[:length] = item['length']
 
               metadata.map_field(mapping)
             end
           end
 
-          true
+          if element['one_to_many']
+            element['one_to_many'].each_pair do |name, item|
+              mapping = {:field_name => name,
+                :target_entity => item['target_entity'],
+                :mapped_by => item['mapped_by']
+              }
+              mapping[:cascade] = item['cascade']
+              mapping[:order_by] = item['order_by']
+
+              metadata.map_one_to_many(mapping)
+            end
+          end
         end
 
         private

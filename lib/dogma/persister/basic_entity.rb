@@ -23,7 +23,7 @@ module Dogma
         def prepare_insert_data(entity)
           data = {}
           @metadata.field_names.each do |field|
-            data[@metadata.column_name(field)] = entity.instance_variable_get "@#{field}"
+            data[@metadata.column_name(field)] = @metadata.value(entity, field)
           end
 
           data

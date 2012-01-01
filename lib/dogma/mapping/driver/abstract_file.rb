@@ -22,6 +22,7 @@ module Dogma
           raise __LINE__.inspect
         end
 
+        # template method
         def load_mapping_file(file_name)
           #TODO raise
         end

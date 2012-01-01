@@ -1,5 +1,6 @@
 require 'spec_helper'
 
+#TODO this test for all drivers
 describe Dogma::Mapping::Driver::Yaml do
   before do
    driver = Dogma::Mapping::Driver::Yaml.new PathHelper.yaml_mapping_fixtures
@@ -13,5 +14,7 @@ describe Dogma::Mapping::Driver::Yaml do
     @metadata.has_field?(:wrong_field_name).should be_false
 
     @metadata.column_name(:username).should eql(:username)
+    @metadata.has_association?(:phonenumbers).should be_true
+    @metadata.association_mappings[:phonenumbers][:cascade_persist].should be
   end
 end

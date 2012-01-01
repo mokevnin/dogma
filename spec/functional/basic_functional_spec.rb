@@ -8,7 +8,7 @@ describe Dogma do
     @em = Dogma::EntityManager.new DB
   end
 
-  it 'should be create' do
+  it 'should be work with one to many association' do
     user = Cms::User.new
     user.name = 'Roman'
     user.username = 'romand'
@@ -21,10 +21,14 @@ describe Dogma do
 
     ph = Cms::Phonenumber.new
     ph.phonenumber = '12345'
-    user.phonenumber = ph
+    user.add_phonenumber(ph)
+
     @em.flush
 
-    @em.contains?(ph)
-    @em.contains?(user)
+    @em.contains?(user).should be_true
+    @em.contains?(ph).should be_true
+
+    user.name = 'new_name'
+    @em.flush
   end
 end

@@ -26,10 +26,6 @@ module Dogma
       @unit_of_work.clear
     end
 
-    def detach(entity)
-      @unit_of_work.detach()
-    end
-
     def contains?(entity)
       @unit_of_work.contains?(entity)
     end

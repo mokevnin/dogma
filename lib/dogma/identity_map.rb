@@ -1,8 +1,14 @@
+require 'set'
+
 module Dogma
   class IdentityMap
     def initialize(em)
       @em = em
       @maps = {}
+    end
+
+    def each_pair(&block)
+      @maps.each_pair(&block)
     end
 
     def add(entity)
@@ -13,6 +19,7 @@ module Dogma
     end
 
     def contains?(entity)
+      @maps[entity.class] ||= {}
       @maps[entity.class].has_key? id_hash(entity)
     end
 
@@ -20,7 +27,7 @@ module Dogma
 
       def id_hash(entity)
         metadata = @em.class_metadata(entity.class)
-        metadata.identifier_values(entity)
+        id_hash = metadata.identifier_values(entity)
       end
   end
 end

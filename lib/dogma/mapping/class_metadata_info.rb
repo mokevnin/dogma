@@ -1,7 +1,7 @@
 module Dogma
   module Mapping
     class ClassMetadataInfo
-      attr_reader :root_entity_name, :identifier
+      attr_reader :root_entity_name, :identifier, :association_mappings
       def initialize(entity_name)
         @root_entity_name = entity_name
         @identifier = []
@@ -9,6 +9,7 @@ module Dogma
         @field_names = {}
         @table = {}
         @field_mappings = {}
+        @association_mappings = {}
       end
 
       def identifier?(field_name)
@@ -16,7 +17,11 @@ module Dogma
       end
 
       def has_field?(field_name)
-        @field_mappings.has_key?(field_name.to_s)
+        @field_mappings.has_key?(field_name)
+      end
+
+      def has_association?(field_name)
+        @association_mappings.has_key?(field_name)
       end
 
       def table_name
@@ -37,7 +42,12 @@ module Dogma
       end
 
       def table_name=(v)
-        @table[:name] = v.to_sym
+        @table[:name] = v ? v.to_sym : root_entity_name.gsub('/', '_').tableize
+      end
+
+      def map_one_to_many(mapping)
+        mapping[:type] = :one_to_many
+        store_association_mapping(mapping)
       end
 
       def map_field(mapping)
@@ -46,8 +56,17 @@ module Dogma
         end
 
         @column_names[mapping[:field_name]] = mapping[:column_name]
-        @field_mappings[mapping[:field_name]] = mapping
+        @field_mappings[mapping[:field_name].to_sym] = mapping
       end
+
+      private
+        def store_association_mapping(mapping)
+          mapping[:cascade] ||= []
+          mapping[:cascade].each do |type|
+            mapping["cascade_#{type}".to_sym] = true
+          end
+          @association_mappings[mapping[:field_name].to_sym] = mapping
+        end
     end
   end
 end

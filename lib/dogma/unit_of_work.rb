@@ -8,21 +8,101 @@ module Dogma
     end
 
     def contains?(entity)
-      scheduled_for_insert?(entity) \
-      || @identity_map.contains?(entity) \
-      && !scheduled_for_delete?(entity)
+      scheduled_for_insert?(entity) ||
+        @identity_map.contains?(entity) && !scheduled_for_delete?(entity)
     end
 
     def commit
-      #TODO order
+      compute_changesets
+      #sorted_classes = commit_order
       #@em.transaction do
         if @entity_inserts.any?
           @entity_inserts.keys.map{|klass| execute_inserts(klass)}
         end
-        #TODO delete
+
+        if @entity_updates.any?
+          @entity_updates.keys.map{|klass| execute_updates(klass)}
+        end
+
+        if @entity_deletions.any?
+          @entity_deletions.keys.map{|klass| execute_deletions(klass)}
+        end
       #end
 
       reset
+    end
+
+    def commit_order(entity_changeset = nil)
+      if entity_change_set.nil?
+        entity_changeset = @entity_inserts + @entity_updates + @entity_deletions
+      end
+      #TODO
+
+    end
+
+    def compute_changesets
+      @entity_inserts.each_pair do |klass, entities|
+        metadata = @em.class_metadata(klass)
+        entities.values.map {|entity| compute_changeset(entity)}
+      end
+
+      @identity_map.each_pair do |klass, items|
+        metadata = @em.class_metadata(klass)
+        items.values.each do |entity|
+          compute_changeset(entity)
+        end
+      end
+    end
+
+    def compute_changeset(entity)
+      oid = entity.object_id
+      metadata = @em.class_metadata(entity.class)
+      actual_data = {}
+
+      metadata.field_names.each do |field_name|
+        value = metadata.value(entity, field_name)
+        if !metadata.identifier?(field_name)
+          actual_data[field_name] = value
+        end
+      end
+
+      if @original_entity_data[oid]
+
+      else
+        @original_entity_data[oid] = actual_data
+        changeset = {}
+        actual_data.each do |field_name, value|
+          if metadata.has_association?(field_name)
+
+          else
+            changeset[field_name] = [nil, value]
+          end
+        end
+        @entity_changesets[oid] = changeset
+      end
+
+      # associations
+      metadata.association_mappings.each do |field_name, mapping|
+        value = metadata.value(entity, field_name)
+        compute_association_changes(mapping, value) if value.present?
+      end
+    end
+
+    def compute_association_changes(mapping, value)
+      #TODO skip proxy
+      #if value.is_a? PersistentCollection
+
+      #end
+      unwrapped_value = Array(value)
+      unwrapped_value.each do |entity|
+        case entity_state(entity)
+        when :new
+          persist_new(entity)
+          compute_changeset(entity)
+        else
+
+        end
+      end
     end
 
     def persist(entity)
@@ -65,15 +145,27 @@ module Dogma
           persist_new(entity)
         end
 
-        #TODO cascade persist
+        cascade_persist(entity, visited)
+      end
+
+      def cascade_persist(entity, visited)
+        metadata = @em.class_metadata(entity.class)
+        metadata.association_mappings.each_pair do |name, mapping|
+          next unless mapping[:cascade_persist]
+          related_entities = metadata.value(entity, name)
+          if related_entities.any?
+            raise related_entities.inspect
+          end
+        end
       end
 
       def execute_inserts(klass)
         metadata = @em.class_metadata(klass)
         persister = entity_persister(klass)
+        #TODO changeset
         post_insert_ids = persister.batch_insert(@entity_inserts[klass].values)
         post_insert_ids.each_pair do |id, entity|
-          entity.instance_variable_set "@#{metadata.identifier[0]}", id
+          metadata.set_identifier_values(entity, id)
           oid = entity.object_id
           #@entity_identifiers[oid] = id
           @entity_states[oid] = :managed
@@ -91,6 +183,8 @@ module Dogma
       end
 
       def reset
+        @entity_changesets = {}
+        @original_entity_data = {}
         @entity_states = {}
         @entity_inserts = {}
         @entity_updates = {}
