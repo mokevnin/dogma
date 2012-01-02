@@ -3,13 +3,48 @@ module Dogma
     def initialize(em)
       @em = em
       @identity_map = IdentityMap.new(@em)
-
-      reset
+      @entity_changesets = {}
+      @original_entity_data = {}
+      @entity_states = {}
+      @entity_inserts = {}
+      @entity_updates = {}
+      @entity_deletions = {}
+      @entity_identifers = {}
+      @persisters = {}
     end
 
     def contains?(entity)
       scheduled_for_insert?(entity) ||
         @identity_map.contains?(entity) && !scheduled_for_delete?(entity)
+    end
+
+    def remove(entity)
+      visited = {}
+      do_remove(entity, visited)
+    end
+
+    def do_remove(entity, visited = {})
+      oid = entity.object_id
+      return if visited[oid]
+
+      visited[oid] = entity
+      cascade_remove(entity)
+      case entity_state(entity)
+      when :managed
+        schedule_for_delete(entity)
+      end
+
+    end
+
+    def cascade_remove(entity)
+      metadata = @em.class_metadata(entity.class)
+      mappings = metadata.association_mappings.values.select {|m| m[:cascade_remove]}
+      mappings.each do |mapping|
+        values = Array(metadata.value(entity, mapping[:field_name]))
+        values.each do |value|
+          do_remove(value)
+        end
+      end
     end
 
     def commit
@@ -29,7 +64,11 @@ module Dogma
         end
       #end
 
-      reset
+      @entity_inserts = {}
+      @entity_updates = {}
+      @entity_deletions = {}
+      @entity_changesets = {}
+      #TODO clean up collections
     end
 
     def commit_order(entity_changeset = nil)
@@ -41,7 +80,7 @@ module Dogma
     end
 
     def compute_changesets
-      @entity_inserts.each_pair do |klass, entities|
+      @entity_inserts.dup.each_pair do |klass, entities|
         metadata = @em.class_metadata(klass)
         entities.values.map {|entity| compute_changeset(entity)}
       end
@@ -145,17 +184,30 @@ module Dogma
           persist_new(entity)
         end
 
-        cascade_persist(entity, visited)
+        #cascade_persist(entity, visited)
       end
 
-      def cascade_persist(entity, visited)
-        metadata = @em.class_metadata(entity.class)
-        metadata.association_mappings.each_pair do |name, mapping|
-          next unless mapping[:cascade_persist]
-          related_entities = metadata.value(entity, name)
-          if related_entities.any?
-            raise related_entities.inspect
-          end
+      #def cascade_persist(entity, visited)
+        #metadata = @em.class_metadata(entity.class)
+        #metadata.association_mappings.each_pair do |name, mapping|
+          #next unless mapping[:cascade_persist]
+          #related_entities = metadata.value(entity, name)
+          #if related_entities.any?
+            #raise related_entities.inspect
+          #end
+        #end
+      #end
+
+      def execute_deletions(klass)
+        metadata = @em.class_metadata(klass)
+        persister = entity_persister(klass)
+        @entity_deletions[klass].values.each do |entity|
+          persister.delete(entity)
+          #@entity_identifiers.delete(entity.object_id)
+          @original_entity_data.delete(entity.object_id)
+          @entity_states.delete(entity.object_id)
+          @entity_deletions[klass].delete(entity.object_id)
+          metadata.set_identifier_values(entity, nil)
         end
       end
 
@@ -173,6 +225,7 @@ module Dogma
         end
       end
 
+
       def entity_persister(klass)
         metadata = @em.class_metadata(klass)
         unless @persisters[klass]
@@ -182,20 +235,15 @@ module Dogma
         @persisters[klass]
       end
 
-      def reset
-        @entity_changesets = {}
-        @original_entity_data = {}
-        @entity_states = {}
-        @entity_inserts = {}
-        @entity_updates = {}
-        @entity_deletions = {}
-        @entity_identifers = {}
-        @persisters = {}
-      end
-
       def persist_new(entity)
         @entity_states[entity.object_id] = :managed
         schedule_for_insert(entity)
+      end
+
+      def schedule_for_delete(entity)
+        #TODO check errors
+        @entity_deletions[entity.class] ||= {}
+        @entity_deletions[entity.class][entity.object_id] = entity
       end
 
       def schedule_for_insert(entity)

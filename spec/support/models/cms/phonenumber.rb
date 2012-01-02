@@ -1,12 +1,7 @@
 module Cms
   class Phonenumber
-    def phonenumber=(v)
-      @phonenumber = v
-    end
-
-    def user=(v)
-      @user = v
-    end
+    attr_reader :id
+    attr_accessor :user, :phonenumber
   end
 end
 

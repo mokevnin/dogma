@@ -6,6 +6,10 @@ module Dogma
       @closed = false
     end
 
+    def uof
+      @unit_of_work
+    end
+
     def persist(entity)
       @unit_of_work.persist(entity)
     end

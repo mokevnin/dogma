@@ -7,6 +7,13 @@ module Dogma
         @metadata = metadata
       end
 
+      def delete(entity)
+        #TODO cascade remove
+        metadata = @em.class_metadata(entity.class)
+        @conn[metadata.table_name]. \
+          filter(metadata.identifier => metadata.identifier_values(entity)).delete
+      end
+
       def batch_insert(entities)
         ids = {}
         entities.map do |entity|
