@@ -1,7 +1,14 @@
 module Dogma
   class UnitOfWork
+    attr_reader :identity_map
+
     def initialize(em)
       @em = em
+      @persisters = {}
+      reset
+    end
+
+    def reset
       @identity_map = IdentityMap.new(@em)
       @entity_changesets = {}
       @original_entity_data = {}
@@ -10,7 +17,6 @@ module Dogma
       @entity_updates = {}
       @entity_deletions = {}
       @entity_identifers = {}
-      @persisters = {}
     end
 
     def contains?(entity)
@@ -69,6 +75,10 @@ module Dogma
       @entity_deletions = {}
       @entity_changesets = {}
       #TODO clean up collections
+    end
+
+    def clear
+      reset
     end
 
     def commit_order(entity_changeset = nil)
@@ -173,6 +183,39 @@ module Dogma
       (@entity_deletions[entity.class] || {}).has_key? entity.object_id
     end
 
+    def entity_persister(klass)
+      metadata = @em.class_metadata(klass)
+      unless @persisters[klass]
+        @persisters[klass] = Dogma::Persister::BasicEntity.new(@em, metadata)
+      end
+
+      @persisters[klass]
+    end
+
+    def create_entity(klass, data)
+      metadata = @em.class_metadata(klass)
+      id_hash = data[metadata.identifier[0]]
+
+      if entity = identity_map.get(id_hash, klass)
+        #TODO implement
+      else
+        entity = klass.allocate
+        oid = entity.object_id
+        @entity_identifers[oid] = id_hash
+        @entity_states[oid] = :managed
+        @original_entity_data[oid] = data
+        identity_map.add(entity)
+      end
+
+      data.each do |field, value|
+        metadata.set_value(entity, field, value)
+      end
+
+      #TODO load collections
+
+      entity
+    end
+
     private
 
       def do_persist(entity, visited = {})
@@ -225,15 +268,6 @@ module Dogma
         end
       end
 
-
-      def entity_persister(klass)
-        metadata = @em.class_metadata(klass)
-        unless @persisters[klass]
-          @persisters[klass] = Dogma::Persister::BasicEntity.new(@em, metadata)
-        end
-
-        @persisters[klass]
-      end
 
       def persist_new(entity)
         @entity_states[entity.object_id] = :managed

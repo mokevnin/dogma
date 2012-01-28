@@ -19,8 +19,11 @@ module Dogma
     end
 
     def contains?(entity)
-      @maps[entity.class] ||= {}
-      @maps[entity.class].has_key? id_hash(entity)
+      @maps[entity.class] && @maps[entity.class].has_key?(id_hash(entity))
+    end
+
+    def get(id, klass)
+      @maps[klass] && @maps[klass][id] || nil
     end
 
     private

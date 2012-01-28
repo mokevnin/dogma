@@ -13,6 +13,11 @@ module Dogma
     autoload :BasicEntity, 'dogma/persister/basic_entity'
   end
 
+  module Hydration
+    autoload :AbstractHydrator, 'dogma/hydration/abstract_hydrator'
+    autoload :SimpleObject, 'dogma/hydration/simple_object'
+  end
+
   module Mapping
     module Driver
       autoload :AbstractFile, 'dogma/mapping/driver/abstract_file'

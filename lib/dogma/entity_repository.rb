@@ -6,10 +6,10 @@ module Dogma
     end
 
     def find(id)
-      if entity = @_em.unit_of_work.try_get_by_id(id, @_metadata.root_entity_name)
+      if entity = @_em.identity_map.get(id, @_metadata.klass)
         return entity
       end
-      @_em.entity_persister(@_metadata.entity_name).load(id)
+      @_em.uof.entity_persister(@_metadata.root_entity_name).load(id)
     end
   end
 end

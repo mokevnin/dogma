@@ -14,5 +14,11 @@ module Cms
       @phonenumbers << ph
       ph.user = self
     end
+
+    def remove_phonenumber(ph)
+      @phonenumbers.delete(ph)
+      ph.user = nil
+    end
   end
 end
+
